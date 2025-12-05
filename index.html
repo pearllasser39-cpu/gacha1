@@ -1,30 +1,1333 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<link rel="stylesheet" href="style.css">
-<title>Tiny Village – FINAL FIXED (Parallax & Moving Villagers)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tiny Chibi Village + Gacha PLUS</title>
+
+  <!-- p5 libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/addons/p5.sound.min.js"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      background: #cce7ff;
+      overflow: hidden;
+    }
+    canvas { display: block; }
+
+    /* UI panel */
+    #ui {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      width: 300px;
+      max-height: 85vh;
+      overflow-y: auto;
+      background: #ffffff;
+      padding: 10px 12px;
+      border-radius: 14px;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.16);
+      z-index: 20;
+      font-size: 12px;
+    }
+    #ui.collapsed .ui-body { display: none; }
+    #ui.collapsed { max-height: 36px; overflow: hidden; }
+
+    .ui-header { display: flex; justify-content: space-between; align-items: center; }
+    .ui-header h3 { margin: 0; font-size: 14px; }
+    #collapseBtn { cursor: pointer; background: #e0e0ff; border: 1px solid #c0c0ff; border-radius: 4px; padding: 2px 8px; }
+
+    #log {
+      margin-top: 8px;
+      font-size: 12px;
+      padding: 6px 8px;
+      background: #f4f7ff;
+      border-radius: 6px;
+      border: 1px solid #dde5ff;
+    }
+
+    button {
+      margin-top: 4px;
+      margin-right: 4px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #cccccc;
+      background: #f7f7f7;
+      font-size: 13px;
+    }
+    button:hover { background: #ececff; border-color: #9999ff; }
+
+    .section-title { font-weight: bold; margin-top: 8px; }
+
+    .tabs {
+      display: flex;
+      margin-top: 8px;
+      border-bottom: 1px solid #e0e0ff;
+    }
+    .tab {
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 13px;
+      border-radius: 8px 8px 0 0;
+      margin-right: 4px;
+    }
+    .tab.active {
+      background: #e7e7ff;
+      font-weight: bold;
+    }
+    .panel {
+      display: none;
+      margin-top: 6px;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+    .panel.active { display: block; }
+
+    .collection-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .card-small {
+      border-radius: 10px;
+      padding: 6px;
+      background: #faf7ff;
+      border: 1px solid #e0ddff;
+      font-size: 12px;
+    }
+    .rarity-label {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      display: inline-block;
+      margin-top: 2px;
+    }
+    .rarity-Common { background: #e0e7ff; }
+    .rarity-Rare { background: #d3f4df; }
+    .rarity-Epic { background: #f0d0ff; }
+    .rarity-Legendary { background: #ffe9b8; }
+
+    .rating-bar {
+      height: 10px;
+      border-radius: 999px;
+      background: #ececff;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .rating-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #7f9cff, #ffd45b);
+    }
+  </style>
+
 </head>
 <body>
 
-<canvas id="cv"></canvas>
+  <div id="ui">
 
-<div id="ui">
-<div class="bar">
-<div class="box">💰 <span id="coins">100</span></div>
-<div class="box">💎 <span id="dia">5</span></div>
-</div>
+    <div class="ui-header">
+      <h3>Tiny Chibi Village + Gacha</h3>
+      <button id="collapseBtn">−</button>
+    </div>
 
-<div id="questTab"></div>
-<div id="villagerUI"></div>
+    <div class="ui-body">
 
-<div class="icon" id="inv">🎒</div>
-<div class="icon" id="build">🔨</div>
-<div class="icon" id="gacha">🎡</div>
+      <!-- authorship block -->
+      <div style="font-size: 11px; color: #666; margin-bottom: 8px;">
+        By Liana Bourdon & Pearl Lasser<br>
+        Creative Codes · Dec 5, 2025
+      </div>
 
-<div id="overlay"><div id="page"></div></div>
-</div>
+      <!-- KEEP THIS village selector -->
+      <div>
+        Select your village:
+        <select id="playerVillage"></select>
+      </div>
 
-<script src="script.js"></script>
+    </div>
+
+    <!-- removed duplicate selector -->
+
+    <div style="margin-top:4px;">
+      <span>Day: <span id="day">1</span></span> ·
+      <span>Rating: <span id="ratingText">Lv1 · Cozy</span></span>
+      <div class="rating-bar"><div id="ratingFill" class="rating-bar-fill"></div></div>
+    </div>
+
+    <div>Money: $<span id="money">0</span> · Food: <span id="food">0</span></div>
+    <div>Materials: <span id="materials">Wood:0 Stone:0 Iron:0</span></div>
+    <div>Inventory: <span id="inventory">Nothing</span></div>
+
+    <div style="margin-top:6px;">
+      <button id="nextDay">Advance Day</button>
+      <button id="explore">Send Villager to Explore</button>
+      <button id="toggleSound">Sound: Off</button>
+      <button id="resetGame" style="background:#ffb3b3;">Reset Game</button>
+    </div>
+
+    <div style="margin-top:6px;">
+      <span class="section-title">Gacha pulls:</span><br/>
+      <button id="gachaSingle">Single Pull</button>
+      <button id="gachaTen">10-Pull</button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-panel="panel-village">Village</div>
+      <div class="tab" data-panel="panel-collection">Collection</div>
+      <div class="tab" data-panel="panel-map">Map</div>
+    </div>
+
+    <div id="panel-village" class="panel active">
+      <div id="villagers"><strong>Villagers:</strong></div>
+      <div id="requests"><strong>Village Requests:</strong></div>
+      <div id="quests"><strong>Active Quests:</strong></div>
+      <div id="creatures"><strong>Tamed Creatures:</strong></div>
+      <div id="trade"><strong>Trade Proposals:</strong>(none yet)</div>
+    </div>
+
+    <div id="panel-collection" class="panel">
+      <div><strong>Gacha Collection:</strong></div>
+      <div id="collectionStats"></div>
+      <div id="collectionGrid" class="collection-grid"></div>
+    </div>
+
+    <div id="panel-map" class="panel">
+      <div><strong>Map Progress:</strong></div>
+      <ul id="mapStatus" style="padding-left:18px; margin-top:4px; font-size:13px;"></ul>
+    </div>
+
+    <div id="log">Village Loaded!</div>
+  </div>
+
+  <script>
+    // -------------- CONSTANTS & MAP --------------
+    const TILE_SIZE = 64;
+    const MAP_COLS = 20;
+    const MAP_ROWS = 12;
+
+    const TILE = {
+      GRASS: 0,
+      PATH: 1,
+      HOUSE: 2,
+      TREE: 3,
+      FARM: 4,
+      WATER: 5,
+      MOUNTAIN: 6,
+      BEACH: 7
+    };
+
+    // base village in center, extra regions locked at first
+    let mapUnlocked = {
+      forest: true,
+      mountain: false,
+      beach: false
+    };
+
+    const baseVillageMap = [
+      [5,5,5,5,5,0,0,0,0,0,0,0,0,5,5,5,5,5,5,5],
+      [5,0,0,0,0,3,0,0,0,3,0,0,0,0,0,0,0,0,0,5],
+      [5,0,2,0,1,1,1,1,1,1,1,0,2,0,0,0,0,0,0,5],
+      [5,0,0,0,1,4,4,1,4,4,1,0,0,0,0,0,0,0,0,5],
+      [5,0,3,0,1,4,4,1,4,4,1,0,3,0,0,0,0,0,0,5],
+      [5,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,5],
+      [5,0,2,0,0,0,3,0,0,3,0,0,2,0,0,0,0,0,0,5],
+      [5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5],
+      [5,5,5,5,0,0,0,0,0,0,0,5,5,5,5,5,5,5,5,5],
+      [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
+      [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
+      [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5]
+    ];
+
+    // -------------- SIMULATION DATA --------------
+    let worldMap = [];
+    let villages = [];
+    let playerVillageIndex = 0;
+    let day = 1;
+    let chibiVillagers = [];
+
+    let timeOfDay = 0; // 0..1
+    let weather = "sunny"; // sunny, rain, snow, fog
+    let weatherTimer = 0;
+
+    // rating / progression
+    let ratingXP = 0;
+    let ratingLevel = 1;
+
+    // gacha
+    const rarityConfig = [
+      { name: "Common", color: "#b6c7ff", weight: 70 },
+      { name: "Rare", color: "#8fd4a5", weight: 20 },
+      { name: "Epic", color: "#d59cff", weight: 8 },
+      { name: "Legendary", color: "#ffd66b", weight: 2 }
+    ];
+
+    const characterPool = [
+      { name: "Mila the Gardener", rarity: "Common" },
+      { name: "Eli the Woodcutter", rarity: "Common" },
+      { name: "Rin the Baker", rarity: "Common" },
+      { name: "Kiko the Forager", rarity: "Rare" },
+      { name: "Sora the Fisher", rarity: "Rare" },
+      { name: "Lyra the Herbalist", rarity: "Rare" },
+      { name: "Nova the Protector", rarity: "Epic" },
+      { name: "Atlas the Builder", rarity: "Epic" },
+      { name: "Celeste the Star Mystic", rarity: "Legendary" },
+      { name: "Aurelia the Sun Guardian", rarity: "Legendary" }
+    ];
+
+    let collection = {}; // name -> {rarity, count}
+    let gachaActive = false;
+    let gachaResults = [];
+    let gachaIndex = 0;
+    let gachaRevealStart = 0;
+
+    // particles for gacha and weather
+    let particles = [];
+
+    // sound
+    let soundOn = false;
+    let synth;
+    let ambientOsc;
+    let ambientPlaying = false;
+
+    // -------------- INIT --------------
+    function buildWorldMap() {
+      worldMap = JSON.parse(JSON.stringify(baseVillageMap));
+
+      if (mapUnlocked.mountain) {
+        for (let r = 2; r < 6; r++) {
+          for (let c = 14; c < 19; c++) {
+            worldMap[r][c] = TILE.MOUNTAIN;
+          }
+        }
+      }
+      if (mapUnlocked.beach) {
+        for (let r = 8; r < 11; r++) {
+          for (let c = 4; c < 11; c++) {
+            worldMap[r][c] = TILE.BEACH;
+          }
+        }
+      }
+    }
+
+    function initVillages(num) {
+      villages = [];
+      for (let i = 0; i < num; i++) {
+        let vill = {
+          name: "Village" + (i + 1),
+          money: 50,
+          food: 20,
+          inventory: [],
+          materials: { wood: 0, stone: 0, iron: 0 },
+          villagers: [
+            {
+              name: "Alice" + (i + 1),
+              age: 25,
+              gender: "F",
+              happiness: 80,
+              energy: 100,
+              job: "Farmer",
+              skill: "Growing",
+              spouse: null,
+              children: [],
+              pregnant: false,
+              pregnancyDays: 0
+            },
+            {
+              name: "Bob" + (i + 1),
+              age: 28,
+              gender: "M",
+              happiness: 70,
+              energy: 100,
+              job: "Shopkeeper",
+              skill: "Trading",
+              spouse: null,
+              children: [],
+              pregnant: false,
+              pregnancyDays: 0
+            }
+          ],
+          tamedCreatures: [],
+          requests: [],
+          activeQuests: [],
+          houseCapacity: 6,
+          tradeProposals: []
+        };
+        villages.push(vill);
+      }
+    }
+
+    function setup() {
+      createCanvas(MAP_COLS * TILE_SIZE, MAP_ROWS * TILE_SIZE);
+      angleMode(RADIANS);
+      buildWorldMap();
+      initVillages(3);
+      rebuildChibiVillagers();
+      loadGame();
+
+      // dropdown
+      const select = document.getElementById("playerVillage");
+      villages.forEach((v, i) => {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = v.name;
+        select.appendChild(opt);
+      });
+      select.addEventListener("change", (e) => {
+        playerVillageIndex = parseInt(e.target.value, 10);
+        rebuildChibiVillagers();
+        updateUI();
+        saveGame();
+      });
+
+      document.getElementById("nextDay").addEventListener("click", advanceDay);
+      document.getElementById("explore").addEventListener("click", exploreAdventure);
+      document.getElementById("gachaSingle").addEventListener("click", () => startGacha(1));
+      document.getElementById("gachaTen").addEventListener("click", () => startGacha(10));
+      document.getElementById("toggleSound").addEventListener("click", toggleSound);
+      document.getElementById("resetGame").addEventListener("click", resetGame);
+
+      // tabs
+      document.querySelectorAll(".tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+          document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+          document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+          tab.classList.add("active");
+          const panelId = tab.getAttribute("data-panel");
+          document.getElementById(panelId).classList.add("active");
+        });
+      });
+
+      synth = new p5.PolySynth();
+      ambientOsc = new p5.Oscillator("sine");
+      ambientOsc.freq(220);
+      ambientOsc.amp(0);
+      ambientOsc.start();
+
+      updateUI();
+
+      document.getElementById("collapseBtn").addEventListener("click", function() {
+        var ui = document.getElementById("ui");
+        var btn = document.getElementById("collapseBtn");
+        if (ui.classList.contains("collapsed")) {
+          ui.classList.remove("collapsed");
+          btn.textContent = "−";
+        } else {
+          ui.classList.add("collapsed");
+          btn.textContent = "+";
+        }
+      });
+    }
+
+    // -------------- DRAW LOOP --------------
+    function draw() {
+      updateTimeAndWeather();
+      drawSkyBackground();
+      drawWorld();
+      drawChibiVillagers();
+      drawWeatherParticles();
+
+      if (gachaActive) {
+        drawGachaOverlay();
+      }
+
+      updateAmbientSound();
+    }
+
+    // -------------- TIME & WEATHER --------------
+    function updateTimeAndWeather() {
+      timeOfDay += 0.0006;
+      if (timeOfDay > 1) timeOfDay -= 1;
+
+      weatherTimer -= deltaTime;
+      if (weatherTimer <= 0) {
+        const options = ["sunny", "rain", "snow", "fog"];
+        weather = random(options);
+        weatherTimer = 30000 + Math.random() * 30000; // 30-60 sec
+        spawnWeatherParticles();
+      }
+    }
+
+    function drawSkyBackground() {
+      let t = timeOfDay;
+      let topColor, bottomColor;
+      if (t < 0.25) {
+        // sunrise
+        topColor = color("#fdd0a8");
+        bottomColor = color("#cce7ff");
+      } else if (t < 0.5) {
+        // day
+        topColor = color("#88cfff");
+        bottomColor = color("#d9f5ff");
+      } else if (t < 0.75) {
+        // sunset
+        topColor = color("#f7a1c4");
+        bottomColor = color("#fbe7c6");
+      } else {
+        // night
+        topColor = color("#0b1230");
+        bottomColor = color("#1a2952");
+      }
+
+      for (let y = 0; y < height; y++) {
+        let lerpAmt = y / height;
+        stroke(lerpColor(topColor, bottomColor, lerpAmt));
+        line(0, y, width, y);
+      }
+    }
+
+    // -------------- WORLD RENDERING --------------
+    function drawWorld() {
+      for (let r = 0; r < MAP_ROWS; r++) {
+        for (let c = 0; c < MAP_COLS; c++) {
+          const tile = worldMap[r][c];
+          const x = c * TILE_SIZE;
+          const y = r * TILE_SIZE;
+
+          noStroke();
+          if (tile === TILE.WATER) {
+            fill("#8ac6ff");
+          } else if (tile === TILE.BEACH) {
+            fill("#ffe9b8");
+          } else {
+            fill("#d9f3c9");
+          }
+          rect(x, y, TILE_SIZE, TILE_SIZE);
+
+          // shadows (simple)
+          if (tile === TILE.HOUSE || tile === TILE.TREE || tile === TILE.FARM || tile === TILE.MOUNTAIN) {
+            fill(0, 0, 0, 20);
+            ellipse(x + TILE_SIZE * 0.5, y + TILE_SIZE * 0.8, TILE_SIZE * 0.6, TILE_SIZE * 0.18);
+          }
+
+          if (tile === TILE.PATH) {
+            fill("#e0c8a0");
+            rect(x + 8, y + 20, TILE_SIZE - 16, TILE_SIZE - 40, 10);
+          } else if (tile === TILE.HOUSE) {
+            drawHouse(x, y);
+          } else if (tile === TILE.TREE) {
+            drawTree(x, y);
+          } else if (tile === TILE.FARM) {
+            drawFarm(x, y);
+          } else if (tile === TILE.MOUNTAIN) {
+            drawMountain(x, y);
+          }
+        }
+      }
+    }
+
+    function drawHouse(x, y) {
+      // cottage
+      fill("#ffe9c4");
+      rect(x + 10, y + 18, TILE_SIZE - 20, TILE_SIZE - 22, 10);
+      fill("#ffb29b");
+      triangle(
+        x + 8, y + 24,
+        x + TILE_SIZE - 8, y + 24,
+        x + TILE_SIZE / 2, y + 4
+      );
+      fill("#c37b59");
+      rect(x + TILE_SIZE / 2 - 6, y + TILE_SIZE - 26, 12, 16, 4);
+
+      // window
+      fill(255, 255, 255, 220);
+      rect(x + 16, y + 28, 14, 12, 3);
+    }
+
+    function drawTree(x, y) {
+      const sway = sin(frameCount * 0.03 + x * 0.01) * 4;
+      fill("#7fc96b");
+      ellipse(x + TILE_SIZE / 2 + sway, y + 20, TILE_SIZE - 16, TILE_SIZE - 12);
+      fill("#8b5a2b");
+      rect(x + TILE_SIZE / 2 - 4 + sway, y + 24, 8, TILE_SIZE - 28, 4);
+    }
+
+    function drawFarm(x, y) {
+      fill("#e7c48a");
+      rect(x + 6, y + 6, TILE_SIZE - 12, TILE_SIZE - 12, 8);
+      stroke("#c8924b");
+      strokeWeight(2);
+      const offset = sin(frameCount * 0.03 + x * 0.02) * 2;
+      for (let yy = y + 10 + offset; yy < y + TILE_SIZE - 8; yy += 8) {
+        line(x + 10, yy, x + TILE_SIZE - 10, yy);
+      }
+      noStroke();
+    }
+
+    function drawMountain(x, y) {
+      fill("#b0b6c6");
+      triangle(
+        x + 8, y + TILE_SIZE - 6,
+        x + TILE_SIZE - 8, y + TILE_SIZE - 6,
+        x + TILE_SIZE / 2, y + 8
+      );
+      fill("#f4f6ff");
+      triangle(
+        x + 18, y + TILE_SIZE - 26,
+        x + TILE_SIZE - 18, y + TILE_SIZE - 26,
+        x + TILE_SIZE / 2, y + 16
+      );
+    }
+
+    // -------------- CHIBI VILLAGERS --------------
+    function rebuildChibiVillagers() {
+      chibiVillagers = [];
+      const v = villages[playerVillageIndex];
+      const walkTiles = [];
+      for (let r = 0; r < MAP_ROWS; r++) {
+        for (let c = 0; c < MAP_COLS; c++) {
+          const t = worldMap[r][c];
+          if (t !== TILE.WATER && t !== TILE.MOUNTAIN) {
+            walkTiles.push({ r, c });
+          }
+        }
+      }
+      v.villagers.forEach((vill, idx) => {
+        const tile = walkTiles[idx % walkTiles.length];
+        const cx = tile.c * TILE_SIZE + TILE_SIZE / 2;
+        const cy = tile.r * TILE_SIZE + TILE_SIZE / 2;
+        chibiVillagers.push({
+          villagerIndex: idx,
+          x: cx,
+          y: cy,
+          targetX: cx,
+          targetY: cy,
+          color: vill.gender === "F" ? "#ffb7c5" : "#b0c4ff",
+          stepCooldown: random(30, 120),
+          blinkTimer: random(60, 180)
+        });
+      });
+    }
+
+    function drawChibiVillagers() {
+      const speed = 0.8;
+      chibiVillagers.forEach(c => {
+        c.stepCooldown--;
+        c.blinkTimer--;
+
+        if (c.stepCooldown <= 0) {
+          if (dist(c.x, c.y, c.targetX, c.targetY) < 4) {
+            const dirs = [
+              { dx: 1, dy: 0 },
+              { dx: -1, dy: 0 },
+              { dx: 0, dy: 1 },
+              { dx: 0, dy: -1 },
+              { dx: 0, dy: 0 }
+            ];
+            const choice = random(dirs);
+            const tileC = Math.floor(c.x / TILE_SIZE) + choice.dx;
+            const tileR = Math.floor(c.y / TILE_SIZE) + choice.dy;
+            if (tileC >= 0 && tileC < MAP_COLS && tileR >= 0 && tileR < MAP_ROWS) {
+              const t = worldMap[tileR][tileC];
+              if (t !== TILE.WATER && t !== TILE.MOUNTAIN) {
+                c.targetX = tileC * TILE_SIZE + TILE_SIZE / 2;
+                c.targetY = tileR * TILE_SIZE + TILE_SIZE / 2;
+              }
+            }
+          }
+          c.stepCooldown = random(40, 120);
+        }
+
+        c.x += (c.targetX - c.x) * speed * 0.02;
+        c.y += (c.targetY - c.y) * speed * 0.02;
+
+        // bounce
+        const bounce = sin(frameCount * 0.15 + c.x * 0.01) * 2;
+
+        // shadow
+        fill(0, 0, 0, 35);
+        ellipse(c.x, c.y + 18, 26, 10);
+
+        // body
+        noStroke();
+        fill("#fbeadd");
+        ellipse(c.x, c.y - 8 + bounce, 26, 26); // head
+
+        fill(c.color);
+        rect(c.x - 10, c.y + 2 + bounce, 20, 20, 8); // body
+
+        stroke("#d18b5c");
+        strokeWeight(3);
+        line(c.x - 10, c.y - 12 + bounce, c.x + 10, c.y - 12 + bounce); // band
+        noStroke();
+
+        // eyes
+        fill("#444");
+        const closed = c.blinkTimer < 5;
+        if (closed) {
+          rect(c.x - 7, c.y - 10 + bounce, 4, 1);
+          rect(c.x + 3, c.y - 10 + bounce, 4, 1);
+          if (c.blinkTimer <= 0) c.blinkTimer = random(60, 180);
+        } else {
+          ellipse(c.x - 5, c.y - 10 + bounce, 3, 3);
+          ellipse(c.x + 5, c.y - 10 + bounce, 3, 3);
+        }
+
+        // smile
+        noFill();
+        stroke("#444");
+        strokeWeight(1.5);
+        arc(c.x, c.y - 6 + bounce, 10, 6, 0, PI);
+        noStroke();
+      });
+    }
+
+    // -------------- WEATHER PARTICLES --------------
+    function spawnWeatherParticles() {
+      particles = particles.filter(p => !p.weatherOnly);
+      if (weather === "sunny") return;
+      for (let i = 0; i < 80; i++) {
+        particles.push({
+          x: random(width),
+          y: random(-height, 0),
+          vx: weather === "fog" ? random(-0.1, 0.1) : random(-0.3, 0.3),
+          vy: weather === "snow" ? random(0.2, 0.6) : random(1, 2.5),
+          weatherOnly: true,
+          type: weather
+        });
+      }
+    }
+
+    function drawWeatherParticles() {
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.y > height + 10) p.y = -10;
+        if (p.x < -10) p.x = width + 10;
+        if (p.x > width + 10) p.x = -10;
+
+        if (p.type === "rain") {
+          stroke(255, 255, 255, 140);
+          strokeWeight(2);
+          line(p.x, p.y, p.x + 2, p.y + 6);
+        } else if (p.type === "snow") {
+          noStroke();
+          fill(255, 255, 255, 200);
+          ellipse(p.x, p.y, 3, 3);
+        } else if (p.type === "fog") {
+          noStroke();
+          fill(255, 255, 255, 40);
+          ellipse(p.x, p.y, 40, 24);
+        } else if (p.type === "sparkle") {
+          noStroke();
+          fill(255, 255, 255, 220);
+          ellipse(p.x, p.y, 4, 4);
+        }
+      });
+    }
+
+    // -------------- ADVANCE DAY / SIM --------------
+    function advanceDay() {
+      day++;
+      villages.forEach((village, i) => {
+        village.villagers.forEach(vill => {
+          vill.age += 0.1;
+          if (vill.job === "Farmer") village.food += 4;
+          if (vill.job === "Shopkeeper") village.money += 4;
+        });
+        villages.forEach((otherV, j) => {
+          if (i !== j) crossVillageMarriage(village, otherV);
+        });
+        handlePregnancies(village);
+        generateVillageRequests(village);
+        generateQuests(village);
+        completeQuests(village);
+      });
+
+      maybeUpgradeBuildings();
+      rebuildChibiVillagers();
+      updateRating();
+      updateUI();
+      saveGame();
+    }
+
+    function crossVillageMarriage(v1, v2) {
+      const males = v1.villagers.filter(v => v.gender === "M" && !v.spouse && v.happiness >= 50);
+      const females = v2.villagers.filter(v => v.gender === "F" && !v.spouse && v.happiness >= 50);
+      if (males.length && females.length && Math.random() < 0.02) {
+        const male = random(males);
+        const female = random(females);
+        male.spouse = female.name;
+        female.spouse = male.name;
+        female.pregnant = true;
+        female.pregnancyDays = 0;
+        logMessage(male.name + " from " + v1.name + " married " + female.name + " from " + v2.name + "!");
+      }
+    }
+
+    function handlePregnancies(village) {
+      village.villagers.forEach(vill => {
+        if (vill.pregnant) {
+          vill.pregnancyDays++;
+          if (vill.pregnancyDays >= 2) {
+            const childName = "Child" + (village.villagers.length + 1);
+            const gender = Math.random() < 0.5 ? "M" : "F";
+            const child = {
+              name: childName,
+              age: 0,
+              gender,
+              happiness: 80,
+              energy: 100,
+              job: null,
+              skill: null,
+              spouse: null,
+              children: [],
+              pregnant: false,
+              pregnancyDays: 0
+            };
+            village.villagers.push(child);
+            vill.pregnant = false;
+            vill.pregnancyDays = 0;
+            logMessage(vill.name + " gave birth to " + childName + " in " + village.name + "!");
+          }
+        }
+      });
+    }
+
+    function generateVillageRequests(village) {
+      if (Math.random() < 0.25) {
+        const types = ["Build", "Collect", "Rescue", "Upgrade"];
+        const type = random(types);
+        village.requests.push({
+          id: Date.now() + Math.random(),
+          type,
+          description: type + " request for " + village.name,
+          completed: false
+        });
+      }
+    }
+
+    function generateQuests(village) {
+      if (Math.random() < 0.2) {
+        const types = ["rescue", "collect", "battle"];
+        const qtype = random(types);
+        village.activeQuests.push({
+          id: Date.now() + Math.random(),
+          type: qtype,
+          description: qtype + " quest for " + village.name,
+          reward: { money: 10, materials: { wood: 5 }, items: [], creatures: [] },
+          completed: false
+        });
+      }
+    }
+
+    function completeQuests(village) {
+      village.activeQuests.forEach(q => {
+        if (!q.completed && Math.random() < 0.4) {
+          village.money += q.reward.money;
+          for (const m in q.reward.materials) village.materials[m] += q.reward.materials[m];
+          q.completed = true;
+          logMessage("Quest completed: " + q.description);
+          ratingXP += 4;
+        }
+      });
+      village.activeQuests = village.activeQuests.filter(q => !q.completed);
+    }
+
+    // -------------- EXPLORATION --------------
+    function exploreAdventure() {
+      const v = villages[playerVillageIndex];
+      if (v.villagers.length === 0) {
+        logMessage("No villagers to explore!");
+        return;
+      }
+      const explorer = random(v.villagers);
+      const outcomes = ["found resources", "found treasure", "found hero", "found monster", "nothing"];
+      const result = random(outcomes);
+
+      switch (result) {
+        case "found resources":
+          v.materials.wood += 4;
+          v.materials.stone += 2;
+          logMessage(explorer.name + " found resources!");
+          ratingXP += 2;
+          break;
+        case "found treasure":
+          v.money += 20;
+          logMessage(explorer.name + " found treasure!");
+          ratingXP += 3;
+          break;
+        case "found hero":
+          const hero = {
+            name: "Hero" + (v.villagers.length + 1),
+            age: 30,
+            gender: "M",
+            happiness: 100,
+            energy: 100,
+            job: "Guardian",
+            skill: "Protecting",
+            spouse: null,
+            children: [],
+            pregnant: false,
+            pregnancyDays: 0
+          };
+          v.villagers.push(hero);
+          logMessage(explorer.name + " found Hero Villager: " + hero.name);
+          ratingXP += 5;
+          rebuildChibiVillagers();
+          break;
+        case "found monster":
+          const monsters = [
+            { name: "Wolf", strength: 5, tameChance: 0.3 },
+            { name: "Bear", strength: 8, tameChance: 0.2 },
+            { name: "Fox", strength: 3, tameChance: 0.5 }
+          ];
+          const monster = random(monsters);
+          if (Math.random() < monster.tameChance) {
+            v.tamedCreatures.push({ name: monster.name, strength: monster.strength, skill: "Battle" });
+            logMessage(explorer.name + " tamed " + monster.name + "!");
+            ratingXP += 4;
+          } else {
+            logMessage(explorer.name + " encountered " + monster.name + " but failed to tame.");
+          }
+          break;
+        case "nothing":
+          logMessage(explorer.name + " found nothing.");
+          break;
+      }
+      updateRating();
+      updateUI();
+      saveGame();
+    }
+
+    // -------------- BUILDING UPGRADES / MAP --------------
+    function maybeUpgradeBuildings() {
+      const thresholds = [0, 30, 70, 130, 220];
+      const lv = ratingLevel;
+      if (ratingXP > thresholds[lv] && lv < thresholds.length) {
+        ratingLevel++;
+        logMessage("Village rating increased to Level " + ratingLevel + "!");
+        spawnSparkles(width / 2, height / 2);
+        if (ratingLevel === 2) {
+          // better farms
+          for (let r = 0; r < MAP_ROWS; r++) {
+            for (let c = 0; c < MAP_COLS; c++) {
+              if (worldMap[r][c] === TILE.FARM) {
+                // upgrading visually = same type, but we could change color
+              }
+            }
+          }
+        } else if (ratingLevel === 3) {
+          mapUnlocked.mountain = true;
+          buildWorldMap();
+          logMessage("Mountain region unlocked!");
+        } else if (ratingLevel === 4) {
+          mapUnlocked.beach = true;
+          buildWorldMap();
+          logMessage("Sunny beach unlocked!");
+        }
+        rebuildChibiVillagers();
+        updateMapStatus();
+      }
+    }
+
+    // -------------- RATING --------------
+    function updateRating() {
+      const v = villages[playerVillageIndex];
+      const villCount = v.villagers.length;
+      let rarityScore = 0;
+      Object.values(collection).forEach(entry => {
+        const base = entry.rarity === "Legendary" ? 5 :
+                     entry.rarity === "Epic" ? 3 :
+                     entry.rarity === "Rare" ? 2 : 1;
+        rarityScore += base * entry.count;
+      });
+      const resourceScore = v.money / 20 + (v.materials.wood + v.materials.stone + v.materials.iron) / 10;
+      ratingXP += (villCount * 0.02 + rarityScore * 0.01 + resourceScore * 0.01);
+
+      const levelNames = ["Cozy", "Busy", "Prosperous", "Renowned", "Legendary"];
+      const thresholds = [0, 30, 70, 130, 220];
+      let level = 1;
+      for (let i = thresholds.length - 1; i >= 0; i--) {
+        if (ratingXP >= thresholds[i]) {
+          level = i + 1;
+          break;
+        }
+      }
+      ratingLevel = level;
+      const nextThreshold = thresholds[Math.min(level, thresholds.length - 1)];
+      const prevThreshold = thresholds[Math.max(0, level - 1)];
+      const ratio = constrain((ratingXP - prevThreshold) / (nextThreshold - prevThreshold || 1), 0, 1);
+
+      document.getElementById("ratingText").textContent = "Lv" + ratingLevel + " · " + levelNames[level - 1];
+      document.getElementById("ratingFill").style.width = (ratio * 100) + "%";
+
+      if (ratingLevel >= 3 && !mapUnlocked.mountain) {
+        mapUnlocked.mountain = true;
+        buildWorldMap();
+        rebuildChibiVillagers();
+        logMessage("Mountain region unlocked!");
+      }
+      if (ratingLevel >= 4 && !mapUnlocked.beach) {
+        mapUnlocked.beach = true;
+        buildWorldMap();
+        rebuildChibiVillagers();
+        logMessage("Sunny beach unlocked!");
+      }
+
+      updateMapStatus();
+    }
+
+    function updateMapStatus() {
+      const el = document.getElementById("mapStatus");
+      let html = "";
+      html += "<li>" + (mapUnlocked.forest ? "Central Village: unlocked" : "Central Village: locked") + "</li>";
+      html += "<li>" + (mapUnlocked.mountain ? "Mountain Ridge: unlocked" : "Mountain Ridge: reach Lv3 to unlock") + "</li>";
+      html += "<li>" + (mapUnlocked.beach ? "Sunny Beach: unlocked" : "Sunny Beach: reach Lv4 to unlock") + "</li>";
+      el.innerHTML = html;
+    }
+
+    // -------------- GACHA --------------
+    function startGacha(numPulls) {
+      if (gachaActive) return;
+      const v = villages[playerVillageIndex];
+      gachaResults = [];
+      for (let i = 0; i < numPulls; i++) {
+        const char = rollCharacter();
+        gachaResults.push(char);
+        addCharacterToVillage(v, char);
+      }
+      gachaIndex = 0;
+      gachaActive = true;
+      gachaRevealStart = millis();
+      spawnSparkles(width / 2, height / 2);
+      playGachaChord(gachaResults);
+      rebuildChibiVillagers();
+      updateRating();
+      updateCollectionPanel();
+      updateUI();
+      saveGame();
+    }
+
+    function rollCharacter() {
+      const totalWeight = rarityConfig.reduce((s, r) => s + r.weight, 0);
+      let r = Math.random() * totalWeight;
+      let chosenRarity = rarityConfig[0];
+      for (let i = 0; i < rarityConfig.length; i++) {
+        if (r < rarityConfig[i].weight) {
+          chosenRarity = rarityConfig[i];
+          break;
+        }
+        r -= rarityConfig[i].weight;
+      }
+      const candidates = characterPool.filter(c => c.rarity === chosenRarity.name);
+      const chosenChar = random(candidates);
+      if (!collection[chosenChar.name]) {
+        collection[chosenChar.name] = { rarity: chosenChar.rarity, count: 0 };
+      }
+      collection[chosenChar.name].count++;
+      ratingXP += chosenRarity.name === "Legendary" ? 10 :
+                  chosenRarity.name === "Epic" ? 6 :
+                  chosenRarity.name === "Rare" ? 3 : 1;
+
+      return {
+        name: chosenChar.name,
+        rarity: chosenRarity.name,
+        color: chosenRarity.color
+      };
+    }
+
+    function addCharacterToVillage(village, char) {
+      const baseHappiness = char.rarity === "Legendary" ? 100 :
+                            char.rarity === "Epic" ? 95 :
+                            char.rarity === "Rare" ? 90 : 82;
+      const jobPool = ["Farmer", "Shopkeeper", "Forager", "Guard", "Crafter"];
+      const skillPool = ["Harvesting", "Trading", "Exploring", "Protecting", "Building"];
+      const newVillager = {
+        name: char.name,
+        age: 18 + Math.floor(Math.random() * 10),
+        gender: Math.random() < 0.5 ? "F" : "M",
+        happiness: baseHappiness,
+        energy: 100,
+        job: random(jobPool),
+        skill: random(skillPool),
+        spouse: null,
+        children: [],
+        pregnant: false,
+        pregnancyDays: 0
+      };
+      village.villagers.push(newVillager);
+      logMessage("Pulled " + char.name + " (" + char.rarity + ") and they joined " + village.name + "!");
+    }
+
+    function drawGachaOverlay() {
+      push();
+      noStroke();
+      fill(0, 0, 0, 170);
+      rect(0, 0, width, height);
+
+      const current = gachaResults[gachaIndex];
+      const elapsed = millis() - gachaRevealStart;
+      const t = min(elapsed / 800, 1);
+      const scaleAmount = 0.7 + 0.15 * sin(frameCount * 0.05);
+      translate(width / 2, height / 2);
+      scale(scaleAmount);
+
+      const cardW = 260;
+      const cardH = 360;
+
+      // glow
+      for (let i = 0; i < 3; i++) {
+        const alpha = 80 - i * 25;
+        fill(red(current.color), green(current.color), blue(current.color), alpha);
+        rectMode(CENTER);
+        rect(0, 0, cardW + i * 10, cardH + i * 10, 30);
+      }
+
+      rectMode(CENTER);
+      stroke(255);
+      strokeWeight(3);
+      fill(current.color);
+      rect(0, 0, cardW, cardH, 24);
+
+      noStroke();
+      fill(255, 248, 240);
+      rect(0, 0, cardW - 30, cardH - 38, 18);
+
+      fill(current.color);
+      rect(0, -cardH / 2 + 36, cardW - 40, 24, 14);
+      fill(40);
+      textAlign(CENTER, CENTER);
+      textSize(13);
+      text("New Villager", 0, -cardH / 2 + 36);
+
+      // portrait
+      const faceY = -120;
+      fill("#fbe3d4");
+      ellipse(0, faceY + 40, 80, 80);
+      fill("#f9b3c4");
+      rect(-28, faceY + 70, 56, 60, 18);
+      stroke("#d18b5c");
+      strokeWeight(4);
+      line(-28, faceY + 20, 28, faceY + 20);
+      noStroke();
+      fill("#444");
+      ellipse(-12, faceY + 32, 6, 6);
+      ellipse(12, faceY + 32, 6, 6);
+      noFill();
+      stroke("#444");
+      strokeWeight(2);
+      arc(0, faceY + 44, 26, 14, 0, PI);
+      noStroke();
+
+      fill(40);
+      textSize(20);
+      textStyle(BOLD);
+      text(current.name, 0, -8);
+
+      textSize(16);
+      textStyle(NORMAL);
+      text("Rarity: " + current.rarity, 0, 22);
+
+      translate(0, cardH / 2 - 46);
+      fill(255);
+      textSize(14);
+      text(
+        "Click to reveal " + (gachaIndex + 1) + " / " + gachaResults.length +
+        (gachaIndex === gachaResults.length - 1 ? " (close)" : ""),
+        0, 0
+      );
+
+      pop();
+    }
+
+    function spawnSparkles(cx, cy) {
+      for (let i = 0; i < 60; i++) {
+        particles.push({
+          x: cx,
+          y: cy,
+          vx: random(-2, 2),
+          vy: random(-3, -0.5),
+          life: 60 + random(20),
+          type: "sparkle"
+        });
+      }
+    }
+
+    // -------------- COLLECTION PANEL --------------
+    function updateCollectionPanel() {
+      const grid = document.getElementById("collectionGrid");
+      const stats = document.getElementById("collectionStats");
+      grid.innerHTML = "";
+      let counts = { Common: 0, Rare: 0, Epic: 0, Legendary: 0 };
+      Object.values(collection).forEach(e => counts[e.rarity] += e.count);
+
+      stats.innerHTML =
+        "Total pulls: " + Object.values(collection).reduce((s,e)=>s+e.count,0) +
+        " · Common: " + counts.Common +
+        " · Rare: " + counts.Rare +
+        " · Epic: " + counts.Epic +
+        " · Legendary: " + counts.Legendary;
+
+      characterPool.forEach(c => {
+        const entry = collection[c.name];
+        const owned = !!entry;
+        const rarity = c.rarity;
+        const div = document.createElement("div");
+        div.className = "card-small";
+        div.innerHTML =
+          "<strong>" + (owned ? c.name : "???") + "</strong><br/>" +
+          "<span class='rarity-label rarity-" + rarity + "'>" + rarity + "</span><br/>" +
+          (owned ? ("Copies: " + entry.count) : "<span style='opacity:0.6;'>Not discovered yet</span>");
+        grid.appendChild(div);
+      });
+    }
+
+    // -------------- SOUND --------------
+    function toggleSound() {
+      soundOn = !soundOn;
+      document.getElementById("toggleSound").textContent = "Sound: " + (soundOn ? "On" : "Off");
+      if (!soundOn) {
+        ambientOsc.amp(0, 0.5);
+        ambientPlaying = false;
+      }
+    }
+
+    function playGachaChord(results) {
+      if (!soundOn) return;
+      const hasLegendary = results.some(r => r.rarity === "Legendary");
+      const hasEpic = results.some(r => r.rarity === "Epic");
+      const baseFreq = 440;
+      const notes = hasLegendary ? [baseFreq, baseFreq*5/4, baseFreq*3/2] :
+                    hasEpic ? [baseFreq*3/4, baseFreq, baseFreq*4/3] :
+                    [baseFreq*2/3, baseFreq*5/6];
+
+      notes.forEach((f, i) => {
+        synth.play(f, 0.15, 0, 0.3 + i*0.05);
+      });
+    }
+
+    function updateAmbientSound() {
+      if (!soundOn) return;
+      const t = timeOfDay;
+      let targetAmp = 0.02;
+      if (t > 0.75 || t < 0.25) targetAmp = 0.03;
+      ambientOsc.amp(targetAmp, 2);
+      ambientPlaying = true;
+    }
+
+    // -------------- UI / LOG / SAVE --------------
+    function updateUI() {
+      const v = villages[playerVillageIndex];
+      document.getElementById("day").textContent = day;
+      document.getElementById("money").textContent = Math.round(v.money);
+      document.getElementById("food").textContent = Math.round(v.food);
+      document.getElementById("inventory").textContent =
+        v.inventory.length ? v.inventory.join(", ") : "Nothing";
+      document.getElementById("materials").textContent =
+        "Wood:" + v.materials.wood + " Stone:" + v.materials.stone + " Iron:" + v.materials.iron;
+
+      let villHTML = "<strong>Villagers:</strong><br/>";
+      v.villagers.forEach(vill => {
+        villHTML +=
+          vill.name + " (" + vill.age.toFixed(0) + "y) " +
+          (vill.job ? "-" + vill.job : "") +
+          (vill.skill ? " · " + vill.skill : "") +
+          (vill.pregnant ? " · Pregnant" : "") + "<br/>";
+      });
+      document.getElementById("villagers").innerHTML = villHTML;
+
+      let reqHTML = "<strong>Village Requests:</strong><br/>";
+      v.requests.forEach(r => reqHTML += r.description + "<br/>");
+      document.getElementById("requests").innerHTML = reqHTML;
+
+      let questHTML = "<strong>Active Quests:</strong><br/>";
+      v.activeQuests.forEach(q => questHTML += q.description + "<br/>");
+      document.getElementById("quests").innerHTML = questHTML;
+
+      let creatureHTML = "<strong>Tamed Creatures:</strong><br/>";
+      v.tamedCreatures.forEach(c => {
+        creatureHTML += c.name + " · STR " + c.strength + "<br/>";
+      });
+      document.getElementById("creatures").innerHTML = creatureHTML;
+
+      updateCollectionPanel();
+      updateMapStatus();
+      updateRating();
+    }
+
+    function logMessage(text) {
+      document.getElementById("log").textContent = text;
+    }
+
+    function saveGame() {
+      try {
+        const data = {
+          villages,
+          day,
+          collection,
+          ratingXP,
+          ratingLevel,
+          mapUnlocked
+        };
+        localStorage.setItem("tiny_chibi_village_save", JSON.stringify(data));
+      } catch(e) {
+        // ignore
+      }
+    }
+
+    function loadGame() {
+      try {
+        const raw = localStorage.getItem("tiny_chibi_village_save");
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (data && data.villages) {
+          villages = data.villages;
+          day = data.day || 1;
+          collection = data.collection || {};
+          ratingXP = data.ratingXP || 0;
+          ratingLevel = data.ratingLevel || 1;
+          mapUnlocked = Object.assign(mapUnlocked, data.mapUnlocked || {});
+          if (ratingLevel >= 3) mapUnlocked.mountain = true;
+          if (ratingLevel >= 4) mapUnlocked.beach = true;
+          buildWorldMap();
+          rebuildChibiVillagers();
+        }
+      } catch(e) {
+        // ignore
+      }
+    }
+
+    function mousePressed() {
+      if (gachaActive) {
+        gachaIndex++;
+        if (gachaIndex >= gachaResults.length) {
+          gachaActive = false;
+        } else {
+          gachaRevealStart = millis();
+        }
+      }
+    }
+
+    function random(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+  
+    function resetGame() {
+      if (!confirm("Are you sure you want to reset everything and start fresh?")) return;
+
+      localStorage.removeItem("tiny_chibi_village_save");
+      ratingXP = 0;
+      ratingLevel = 1;
+      collection = {};
+      mapUnlocked = { forest: true, mountain: false, beach: false };
+
+      initVillages(3);
+      buildWorldMap();
+      rebuildChibiVillagers();
+      updateUI();
+      logMessage("Game reset! Reloading...");
+      setTimeout(() => location.reload(), 600);
+    }
+
+</script>
 </body>
 </html>
+  
