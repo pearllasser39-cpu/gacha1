@@ -1,0 +1,45 @@
+html,body{margin:0;height:100%;overflow:hidden;font-family:sans-serif;background:#87cfff}
+canvas{display:block}
+#ui{position:absolute;inset:0;pointer-events:none}
+
+/* Resource bar */
+.bar{position:absolute;top:10px;right:10px;display:flex;gap:8px;pointer-events:auto}
+.box{background:white;padding:6px 12px;border-radius:10px;font-weight:bold}
+
+/* Icons */
+.icon{
+position:absolute;bottom:12px;width:56px;height:56px;border-radius:12px;
+background:white;display:flex;align-items:center;justify-content:center;
+font-size:22px;cursor:pointer;pointer-events:auto
+}
+#inv{right:140px}
+#build{right:80px}
+#gacha{right:20px}
+
+/* Quest */
+#questTab{
+position:absolute;left:10px;top:10px;width:260px;
+background:white;border-radius:12px;padding:10px;pointer-events:auto
+}
+
+/* Overlay */
+#overlay{position:absolute;inset:0;background:rgba(0,0,0,.6);display:none;pointer-events:auto}
+#page{
+position:absolute;left:50%;top:50%;
+transform:translate(-50%,-50%);
+background:white;border-radius:12px;padding:16px;
+width:340px;max-height:90%;overflow:auto
+}
+
+/* Hover villager info */
+#villagerUI{
+position:absolute;left:10px;bottom:10px;
+background:white;border-radius:10px;padding:8px;display:none;pointer-events:auto
+}
+
+.slot{border:1px solid #aaa;height:44px;background:#fafafa;border-radius:6px}
+
+/* Building thumbnails */
+.build-img{
+width:160px;height:120px;object-fit:contain;object-position:center;display:block;margin:0 auto;cursor:pointer;border:1px solid #ddd;border-radius:8px;background:#fff;
+}
